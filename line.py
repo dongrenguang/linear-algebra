@@ -51,7 +51,7 @@ class Line(object):
 
 
     # 是否是同一条直线
-    def is_same(self, line2):
+    def __eq__(self, line2):
         if self.normal_vector.is_zero():
             if not line2.normal_vector.is_zero():
                 return False
@@ -83,7 +83,7 @@ class Line(object):
 
     # 交点
     def intersection_with(self, line2):
-        if (self.is_same(line2)):
+        if (self.__eq__(line2)):
             print 'They are the same line, so they have countless intersection.'
         elif (self.is_parallel_to(line2)):
             print 'They are parallel, but not the same, so they have no intersection.'
@@ -173,4 +173,4 @@ line2 = Line(Vector([0, 0]), 1.21)
 
 print line1.intersection_with(line2)
 print line1.is_parallel_to(line2)
-print line1.is_same(line2)
+print line1.__eq__(line2)
