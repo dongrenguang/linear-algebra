@@ -28,7 +28,7 @@ class Line(object):
     # 基点，即(0, b) or (a, 0)
     def set_basepoint(self):
         try:
-            n = self.normal_vector.coordinates
+            n = self.normal_vector
             c = self.constant_term
             basepoint_coords = ['0']*self.dimension
 
@@ -63,8 +63,8 @@ class Line(object):
 
         if (not self.is_parallel_to(line2)):
             return False;
-        # n1 = self.normal_vector.coordinates
-        # n2 = line2.normal_vector.coordinates
+        # n1 = self.normal_vector
+        # n2 = line2.normal_vector
         # c1 = self.constant_term
         # c2 = line2.constant_term
         # initial_index1 = Line.first_nonzero_index(n1)
@@ -88,11 +88,11 @@ class Line(object):
         elif (self.is_parallel_to(line2)):
             print 'They are parallel, but not the same, so they have no intersection.'
         else:
-            A = self.normal_vector.coordinates[0]
-            B = self.normal_vector.coordinates[1]
+            A = self.normal_vector[0]
+            B = self.normal_vector[1]
             k1 = self.constant_term
-            C = line2.normal_vector.coordinates[0]
-            D = line2.normal_vector.coordinates[1]
+            C = line2.normal_vector[0]
+            D = line2.normal_vector[1]
             k2 = line2.constant_term
             x = (D * k1 - B * k2) / (A * D - B * C)
             y = (-C * k1 + A * k2) / (A * D - B * C)
@@ -123,7 +123,7 @@ class Line(object):
 
             return output
 
-        n = self.normal_vector.coordinates
+        n = self.normal_vector
 
         try:
             initial_index = Line.first_nonzero_index(n)
@@ -168,9 +168,9 @@ class MyDecimal(Decimal):
 # line1 = Line(Vector([1.182, 5.562]), 6.744)
 # line2 = Line(Vector([1.773, 8.343]), 9.525)
 
-line1 = Line(Vector([0, 0]), 1.21)
-line2 = Line(Vector([0, 0]), 1.21)
+# line1 = Line(Vector([0, 0]), 1.21)
+# line2 = Line(Vector([0, 0]), 1.21)
 
-print line1.intersection_with(line2)
-print line1.is_parallel_to(line2)
-print line1.__eq__(line2)
+# print line1.intersection_with(line2)
+# print line1.is_parallel_to(line2)
+# print line1.__eq__(line2)

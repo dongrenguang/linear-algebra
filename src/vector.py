@@ -55,7 +55,12 @@ class Vector(object):
 
     # 内积（是一个值）
     def dot(self, v):
-        return sum([x*y for x,y in zip(self.coordinates, v.coordinates)])
+        s = sum([x*y for x,y in zip(self.coordinates, v.coordinates)])
+        if s > 1 and MyDecimal(s - 1).is_near_zero():
+            s = Decimal('1.0')
+        elif s < -1 and MyDecimal(s + 1).is_near_zero():
+            s = Decimal('-1.0')
+        return s
 
 
     # 夹角
@@ -83,7 +88,7 @@ class Vector(object):
 
 
     # 是否平行
-    def is_parallel_to(self, v, tolerance=1e-10):
+    def is_parallel_to(self, v, tolerance=1e-6):
         return self.is_zero() or v.is_zero() or self.angle_with(v) < Decimal(tolerance) or abs(self.angle_with(v) - Decimal(pi)) < Decimal(tolerance)
 
 
@@ -137,6 +142,20 @@ class Vector(object):
     def __eq__(self, v):
         return self.coordinates == v.coordinates
 
+
+    def __getitem__(self, i):
+        return self.coordinates[i]
+
+
+    def __setitem__(self, i, x):
+        self.coordinates[i] = x
+
+
+
+
+class MyDecimal(Decimal):
+    def is_near_zero(self, eps=1e-10):
+        return abs(self) < eps
 
 
 # v = Vector(['8.462', '7.893', '-8.187'])

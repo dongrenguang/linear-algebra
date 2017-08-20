@@ -26,7 +26,7 @@ class Plane(object):
 
     def set_basepoint(self):
         try:
-            n = self.normal_vector.coordinates
+            n = self.normal_vector
             c = self.constant_term
             basepoint_coords = ['0']*self.dimension
 
@@ -45,6 +45,24 @@ class Plane(object):
 
     def is_parallel_to(self, plane2):
         return self.normal_vector.is_parallel_to(plane2.normal_vector)
+
+
+    def time_scalar(self, c):
+        new_normal_vector = self.normal_vector.time_scalar(c)
+        new_constant_term = self.constant_term * c
+        return Plane(new_normal_vector, new_constant_term)
+
+
+    def plus(self, plane2):
+        new_normal_vector = self.normal_vector.plus(plane2.normal_vector)
+        new_constant_term = self.constant_term + plane2.constant_term
+        return Plane(new_normal_vector, new_constant_term)
+
+
+    def minus(self, plane2):
+        new_normal_vector = self.normal_vector.minus(plane2.normal_vector)
+        new_constant_term = self.constant_term - plane2.constant_term
+        return Plane(new_normal_vector, new_constant_term)
 
 
     def __eq__(self, plane2):
@@ -122,8 +140,8 @@ class MyDecimal(Decimal):
 # p1 = Plane(Vector([2.611, 5.528, 0.283]), 4.6)
 # p2 = Plane(Vector([7.715, 8.306, 5.342]), 3.76)
 
-p1 = Plane(Vector([-7.926, 8.625, -7.212]), -7.952)
-p2 = Plane(Vector([-2.642, 2.875, -2.404]),  -2.443)
-
-print p1.is_parallel_to(p2)
-print p1.__eq__(p2)
+# p1 = Plane(Vector([-7.926, 8.625, -7.212]), -7.952)
+# p2 = Plane(Vector([-2.642, 2.875, -2.404]),  -2.443)
+#
+# print p1.is_parallel_to(p2)
+# print p1 == (p2)
