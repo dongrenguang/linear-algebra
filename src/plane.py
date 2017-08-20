@@ -49,7 +49,7 @@ class Plane(object):
 
     def time_scalar(self, c):
         new_normal_vector = self.normal_vector.time_scalar(c)
-        new_constant_term = self.constant_term * c
+        new_constant_term = self.constant_term * Decimal(str(c))
         return Plane(new_normal_vector, new_constant_term)
 
 
@@ -66,6 +66,15 @@ class Plane(object):
 
 
     def __eq__(self, plane2):
+        if self.normal_vector.is_zero():
+            if not plane2.normal_vector.is_zero():
+                return False
+            else:
+                diff = self.constant_term - plane2.constant_term
+                return MyDecimal(diff).is_near_zero()
+        elif plane2.normal_vector.is_zero():
+            return False
+
         if not self.is_parallel_to(plane2):
             return False
 

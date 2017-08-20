@@ -29,21 +29,130 @@ class LinearSystem(object):
 
 
     def swap_rows(self, row1, row2):
-        index1 = self.index_of(row1)
-        index2 = self.index_of(row2)
-        self[index1] = row2
-        self[index2] = row1
+        self[row1], self[row2] = self[row2], self[row1]
 
 
     def multiply_coefficient_and_row(self, coefficient, row):
-        index = self.index_of(row)
-        self[index] = row.time_scalar(coefficient)
+        self[row] = self[row].time_scalar(coefficient)
 
 
     def add_multiple_times_row_to_row(self, coefficient, row_to_add, row_to_be_added_to):
-        new_row = row_to_be_added_to.plus(row_to_add.time_scalar(coefficient))
-        index = self.index_of(row_to_be_added_to)
-        self[index] = new_row
+        new_row = self[row_to_be_added_to].plus(self[row_to_add].time_scalar(coefficient))
+        self[row_to_be_added_to] = new_row
+
+
+    # 转化方程式为倒三角形矩阵
+    def compute_triangular_form(self):
+        system = deepcopy(self)
+        l = len(system)
+        for i in range(0, l - 1):
+            indices = system.indices_of_first_nonzero_terms_in_each_row()
+            # 交换
+            if indices[i] != 0:
+                first = -1
+                for j in range(i + 1, l):
+                    if indices[j] == 0:
+                        first = j
+                        break
+                if first != -1:
+                    system.swap_rows(i, first)
+            # 处理i行以下的plane
+            for k in range(i + 1, l):
+                if indices[k] == i:
+                    times = -system[k].normal_vector[i] / system[i].normal_vector[i]
+                    system.add_multiple_times_row_to_row(times, i, k)
+
+        return system
+
+
+    def compute_rref(self):
+        tf = self.compute_triangular_form()
+        num_equations = len(tf)
+        pivot_indices = tf.indices_of_first_nonzero_terms_in_each_row()
+        for i in range(num_equations)[::-1]:
+            j = pivot_indices[i]
+            if j < 0:
+                continue
+            tf.scale_row_to_make_coefficient_equal_one(i, j)
+            tf.clear_coefficients_above(i, j)
+
+        return tf
+
+        ''' 我自己的方法
+        tf = self.compute_triangular_form()
+        l = len(tf)
+        dimension = self.dimension
+        i = l - 1
+        min = l
+        if dimension < min:
+            min = dimension
+
+        while i >= 0:
+            # 归一化
+            z = tf[i].normal_vector[indices[i]]
+            if not MyDecimal(z).is_near_zero():
+                times = Decimal('1.0') / z
+                tf[i] = tf[i].time_scalar(times)
+            # 去砸项
+            if i < dimension - 1:
+                for j in range(i + 1, min):
+                    b = tf[i].normal_vector[j]
+                    a = tf[j].normal_vector[j]
+                    if not MyDecimal(a).is_near_zero():
+                        times2 = - b / a
+                        tf.add_multiple_times_row_to_row(times2, j, i)
+
+            i -= 1
+
+        return tf
+        '''
+
+
+    def scale_row_to_make_coefficient_equal_one(self, row, col):
+        n = self[row].normal_vector
+        beta = Decimal('1.0') / n[col]
+        self.multiply_coefficient_and_row(beta, row)
+
+
+    def clear_coefficients_above(self, row, col):
+        for k in range(row)[::-1]:
+            n = self[k].normal_vector
+            alpha = -n[col]
+            self.add_multiple_times_row_to_row(alpha, row, k)
+
+
+    def do_gaussian_elimination_and_extract_solution(self):
+        rref = self.compute_rref()
+        rref.raise_exception_if_contradictory_equation()
+        rref.raise_exception_if_too_few_pivots()
+
+        num_variables = self.dimension
+        solution_coordinates = [rref.planes[i].constant_term for i in range(num_variables)]
+        return Vector(solution_coordinates)
+
+
+    def raise_exception_if_contradictory_equation(self):
+        for p in self.planes:
+            try:
+                p.first_nonzero_index(p.normal_vector)
+
+            except Exception as e:
+                if str(e) == 'No nonzero elements found':
+                    constant_term = MyDecimal(p.constant_term)
+                    if not constant_term.is_near_zero():
+                        raise Exception(self.NO_SOLUTIONS_MSG)
+
+                else:
+                    raise e
+
+
+    def raise_exception_if_too_few_pivots(self):
+        pivot_indices = self.indices_of_first_nonzero_terms_in_each_row()
+        num_pivots = sum([1 if index >= 0 else 0 for index in pivot_indices])
+        num_variables = self.dimension
+        if num_pivots < num_variables:
+            raise Exception(self.INF_SOLUTIONS_MSG)
+
 
 
     def indices_of_first_nonzero_terms_in_each_row(self):
@@ -63,12 +172,6 @@ class LinearSystem(object):
 
         return indices
 
-
-    def index_of(self, row):
-        for index in range(0, len(self)):
-            if row == self[index]:
-                return index
-        return -1
 
     def __len__(self):
         return len(self.planes)
@@ -99,19 +202,92 @@ class MyDecimal(Decimal):
         return abs(self) < eps
 
 
-p0 = Plane(normal_vector=Vector(['1','1','1']), constant_term='1')
-p1 = Plane(normal_vector=Vector(['0','1','0']), constant_term='2')
-p2 = Plane(normal_vector=Vector(['1','1','-1']), constant_term='3')
-p3 = Plane(normal_vector=Vector(['1','0','-2']), constant_term='2')
-
-s = LinearSystem([p0,p1,p2,p3])
+# p0 = Plane(normal_vector=Vector(['1','1','1']), constant_term='1')
+# p1 = Plane(normal_vector=Vector(['0','1','0']), constant_term='2')
+# p2 = Plane(normal_vector=Vector(['1','1','-1']), constant_term='3')
+# p3 = Plane(normal_vector=Vector(['1','0','-2']), constant_term='2')
+#
+# s = LinearSystem([p0,p1,p2,p3])
 
 # print s.indices_of_first_nonzero_terms_in_each_row()
 # print '{},{},{},{}'.format(s[0],s[1],s[2],s[3])
 # print len(s)
-print s
+# print s
 
-# s.swap_rows(p0, p3)
-# s.multiply_coefficient_and_row(2, p3)
-s.add_multiple_times_row_to_row(1, p3, p2)
-print s
+# s.swap_rows(0, 3)
+# s.multiply_coefficient_and_row(2, 3)
+# s.add_multiple_times_row_to_row(1, 3, 2)
+# print s
+
+# system = s.compute_triangular_form()
+# print system
+
+
+
+
+# p1 = Plane(normal_vector=Vector(['1','1','1']), constant_term='1')
+# p2 = Plane(normal_vector=Vector(['0','1','1']), constant_term='2')
+# s = LinearSystem([p1,p2])
+# r = s.compute_rref()
+# if not (r[0] == Plane(normal_vector=Vector(['1','0','0']), constant_term='-1') and
+#         r[1] == p2):
+#     print 'test case 1 failed'
+# else:
+#     print 'Pass case 1'
+#
+# p1 = Plane(normal_vector=Vector(['1','1','1']), constant_term='1')
+# p2 = Plane(normal_vector=Vector(['1','1','1']), constant_term='2')
+# s = LinearSystem([p1,p2])
+# r = s.compute_rref()
+# if not (r[0] == p1 and
+#         r[1] == Plane(constant_term='1')):
+#     print 'test case 2 failed'
+# else:
+#     print 'Pass case 2'
+#
+# p1 = Plane(normal_vector=Vector(['1','1','1']), constant_term='1')
+# p2 = Plane(normal_vector=Vector(['0','1','0']), constant_term='2')
+# p3 = Plane(normal_vector=Vector(['1','1','-1']), constant_term='3')
+# p4 = Plane(normal_vector=Vector(['1','0','-2']), constant_term='2')
+# s = LinearSystem([p1,p2,p3,p4])
+# r = s.compute_rref()
+# if not (r[0] == Plane(normal_vector=Vector(['1','0','0']), constant_term='0') and
+#         r[1] == p2 and
+#         r[2] == Plane(normal_vector=Vector(['0','0','-2']), constant_term='2') and
+#         r[3] == Plane()):
+#     print 'test case 3 failed'
+# else:
+#     print 'Pass case 3'
+#
+#
+# p1 = Plane(normal_vector=Vector(['0','1','1']), constant_term='1')
+# p2 = Plane(normal_vector=Vector(['1','-1','1']), constant_term='2')
+# p3 = Plane(normal_vector=Vector(['1','2','-5']), constant_term='3')
+# s = LinearSystem([p1,p2,p3])
+# r = s.compute_rref()
+# if not (r[0] == Plane(normal_vector=Vector(['1','0','0']), constant_term=Decimal('23')/Decimal('9')) and
+#         r[1] == Plane(normal_vector=Vector(['0','1','0']), constant_term=Decimal('7')/Decimal('9')) and
+#         r[2] == Plane(normal_vector=Vector(['0','0','1']), constant_term=Decimal('2')/Decimal('9'))):
+#     print 'test case 4 failed'
+# else:
+#     print 'Pass case 4'
+
+
+
+
+# p0 = Plane(normal_vector=Vector(['5.862',' 1.178','-10.366']), constant_term='-8.15')
+# p1 = Plane(normal_vector=Vector(['-2.931','-0.589','5.183']), constant_term='-4.075')
+
+# p0 = Plane(normal_vector=Vector(['8.631','5.112','-1.816']), constant_term='-5.113')
+# p1 = Plane(normal_vector=Vector(['4.315','11.132','-5.27']), constant_term='-6.775')
+# p2 = Plane(normal_vector=Vector(['-2.158','3.01','-1.727']), constant_term='-0.831')
+
+p0 = Plane(normal_vector=Vector(['5.262','2.739','-9.878']), constant_term='-3.441')
+p1 = Plane(normal_vector=Vector(['5.111','6.358','7.638']), constant_term='-2.152')
+p2 = Plane(normal_vector=Vector(['2.016','-9.924','-1.367']), constant_term='-9.278')
+p3 = Plane(normal_vector=Vector(['2.167','-13.593','-18.883']), constant_term='-10.567')
+
+s = LinearSystem([p0, p1, p2, p3])
+r = s.compute_rref()
+print r
+# s.do_gaussian_elimination_and_extract_solution()
